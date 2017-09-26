@@ -5,7 +5,7 @@ class FSM {
      */
     constructor(config) {
         if (typeof config == 'undefined') {
-            throw Error;
+            throw new Error();
         }
         this.config = config;
         this.activeState = config.initial;
@@ -25,7 +25,10 @@ class FSM {
      * @param state
      */
     changeState(state) {
-        this.stateStack.push(activeState);
+        if (typeof this.config.states[state] == 'undefined') {
+            throw new Error();
+        }
+        this.stateStack.push(this.activeState);
         this.activeState = state;
     }
 
@@ -33,7 +36,13 @@ class FSM {
      * Changes state according to event transition rules.
      * @param event
      */
-    trigger(event) { }
+    trigger(event) {
+        var nextState = this.config.states[this.activeState].transitions[event];
+        if (typeof nextState == 'undefined') {
+            throw new Error();
+        }
+        this.changeState(nextState);
+    }
 
     /**
      * Resets FSM state to initial.
@@ -53,7 +62,7 @@ class FSM {
         if (typeof event == 'undefined') {
             return this.config.states;
         }
-        var returnStates = [];
+        var returnStates = {};
         for (var state in this.config.states) {
             for (var tempEvent in state.transitions) {
                 if (event == tempEvent) {
@@ -71,7 +80,12 @@ class FSM {
      */
     undo() {
         var previousState = this.stateStack.pop();
-        return (typeof previousState == 'undefined') ? false : previousState;
+        if(typeof previousState == 'undefined'){
+            return false;
+        }
+        this.stateStack.push(activeState);
+        this.activeState = previousState;
+        return true;
     }
 
     /**
