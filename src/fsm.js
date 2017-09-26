@@ -10,6 +10,7 @@ class FSM {
         this.config = config;
         this.activeState = config.initial;
         this.stateStack = [];
+        this.redoStack = [];
     }
 
     /**
@@ -30,6 +31,7 @@ class FSM {
         }
         this.stateStack.push(this.activeState);
         this.activeState = state;
+        this.redoStack = [];
     }
 
     /**
@@ -42,6 +44,7 @@ class FSM {
             throw new Error();
         }
         this.changeState(nextState);
+        this.redoStack = [];
     }
 
     /**
@@ -50,6 +53,7 @@ class FSM {
     reset() {
         this.stateStack = [];
         this.activeState = this.config.initial;
+        this.redoStack = [];
     }
 
     /**
@@ -60,14 +64,16 @@ class FSM {
      */
     getStates(event) {
         if (typeof event == 'undefined') {
-            return this.config.states;
+            var states = [];
+            for (var state in this.config.states) {
+                states.push(state);
+            }
+            return states;
         }
-        var returnStates = {};
+        var returnStates = [];
         for (var state in this.config.states) {
-            for (var tempEvent in state.transitions) {
-                if (event == tempEvent) {
-                    returnStates.push(state);
-                }
+            if (typeof this.config.states[state].transitions[event] != 'undefined') {
+                returnStates.push(state);
             }
         }
         return returnStates;
@@ -80,10 +86,10 @@ class FSM {
      */
     undo() {
         var previousState = this.stateStack.pop();
-        if(typeof previousState == 'undefined'){
+        if (typeof previousState == 'undefined') {
             return false;
         }
-        this.stateStack.push(activeState);
+        this.redoStack.push(this.activeState);
         this.activeState = previousState;
         return true;
     }
@@ -93,13 +99,23 @@ class FSM {
      * Returns false if redo is not available.
      * @returns {Boolean}
      */
-    redo() { }
+    redo() {
+        var redoState = this.redoStack.pop();
+        if (typeof redoState == 'undefined') {
+            return false;
+        }
+        this.stateStack.push(this.activeState);
+        this.activeState = redoState;
+
+        return true;
+    }
 
     /**
      * Clears transition history
      */
     clearHistory() {
         this.stateStack = [];
+        this.redoStack = [];
     }
 }
 
